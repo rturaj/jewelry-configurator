@@ -8,6 +8,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import goldTexture from "@/assets/gold.jpg";
 import silverTexture from "@/assets/silver.jpg";
 import floorTexture from "@/assets/floor.jpg";
+import { mapGetters } from "vuex";
 export default {
   data() {
     return {
@@ -15,11 +16,33 @@ export default {
       scene: null,
       renderer: null,
       ring: null,
-      light1: null,
-      light2: null,
+      leftLight: null,
+      rightLight: null,
       controls: null,
       loader: null
     };
+  },
+  computed: {
+    ...mapGetters([
+      "getRingTexture",
+      "getRingSize",
+      "getLeftLightIntensity",
+      "getRightLightIntensity"
+    ])
+  },
+  watch: {
+    getRingTexture(val) {
+      this.changeRingTexture(val);
+    },
+    getRingSize(val) {
+      this.changeRingSize(val);
+    },
+    getLeftLightIntensity(val) {
+      this.changeLightIntensity("left", val);
+    },
+    getRightLightIntensity(val) {
+      this.changeLightIntensity("right", val);
+    }
   },
   methods: {
     init() {
@@ -28,7 +51,7 @@ export default {
       this.addScene();
       this.addLights();
       this.addFloor();
-      this.addRing();
+      this.addRing(this.getRingSize);
       this.addRenderer();
       this.addControls();
       document.getElementById("preview").appendChild(this.renderer.domElement);
@@ -47,21 +70,21 @@ export default {
         1,
         1000
       );
-      this.camera.position.z = 20;
-      this.camera.position.y = 5;
+      this.camera.position.z = 25;
+      this.camera.position.y = 15;
     },
     addLights() {
-      this.light1 = new THREE.DirectionalLight(0xffffff, 1);
-      this.light1.position.set(-10, 10, 0);
-      this.light1.castShadow = true;
+      this.leftLight = new THREE.DirectionalLight(0xffffff, 1);
+      this.leftLight.position.set(-10, 10, 0);
+      this.leftLight.castShadow = true;
 
-      this.light2 = this.light1.clone();
-      this.light2.position.x = 10;
+      this.rightLight = this.leftLight.clone();
+      this.rightLight.position.x = 10;
 
-      this.scene.add(this.light1, this.light2);
+      this.scene.add(this.leftLight, this.rightLight);
     },
-    addRing() {
-      let geometry = new THREE.TorusGeometry(4, 0.5, 16, 100);
+    addRing(size) {
+      let geometry = new THREE.TorusGeometry(size / 2, size / 20, 32, 100);
       let material = new THREE.MeshLambertMaterial({
         map: this.loader.load(goldTexture)
       });
@@ -69,7 +92,7 @@ export default {
       this.ring = new THREE.Mesh(geometry, material);
       this.ring.castShadow = true;
       this.ring.receiveShadow = false;
-      this.ring.position.y = 5;
+      this.ring.position.y = 8;
       this.scene.add(this.ring);
     },
     addFloor() {
@@ -104,6 +127,22 @@ export default {
       this.camera.aspect = (window.innerWidth * 0.8) / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth * 0.8, window.innerHeight);
+    },
+    changeRingTexture(texture) {
+      this.ring.material.map = this.loader.load(
+        texture == 1 ? goldTexture : silverTexture
+      );
+    },
+    changeRingSize(size) {
+      this.scene.remove(this.ring);
+      this.addRing(size);
+    },
+    changeLightIntensity(side, intensity) {
+      if (side == "left") {
+        this.leftLight.intensity = intensity;
+      } else if (side == "right") {
+        this.rightLight.intensity = intensity;
+      }
     }
   },
   mounted() {
